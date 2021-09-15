@@ -19,7 +19,16 @@ func main() {
 		return
 	}
 
-	fmt.Sprintln("starting server of type: {}", connType)
+	if connType == Client {
+		startClient()
+	} else {
+		startServer()
+	}
+
+}
+
+func startServer() {
+	log.Println("starting server")
 
 	listener, err := net.Listen("tcp", "127.0.0.1:8080")
 
