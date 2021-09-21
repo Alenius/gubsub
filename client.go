@@ -2,7 +2,9 @@ package main
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
+	"log"
 	"net"
 )
 
@@ -11,9 +13,24 @@ func startClient() {
 
 	checkError(err)
 
-	status, err := bufio.NewReader(conn).ReadString('\n')
-	checkError(err)
+	for {
 
-	fmt.Println(status)
+		status, err := bufio.NewReader(conn).ReadBytes(' ')
+
+		if err != nil {
+			if err.Error() != "EOF" {
+				log.Println("Error", err)
+			}
+		}
+
+		if len(status) > 0 {
+			gs_msg := gs_msg{}
+			err = json.Unmarshal(status, &gs_msg)
+			fmt.Println("res", string(status))
+			fmt.Println("Status", status)
+			// fmt.Printf("gs msg %+v \n", gs_msg)
+			fmt.Println("err", err)
+		}
+	}
 
 }
