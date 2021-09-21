@@ -9,6 +9,22 @@ import (
 	"os"
 )
 
+type ConnectionType string
+
+const (
+	Client ConnectionType = "Client"
+	Server ConnectionType = "Server"
+)
+
+func failInvalidConnectionType(ct *ConnectionType) error {
+	switch *ct {
+	case Client, Server:
+		return nil
+	}
+
+	return errors.New("Invalid connection type")
+}
+
 func main() {
 	connTypeUnchecked := os.Getenv("TYPE")
 	connType := ConnectionType(connTypeUnchecked)
@@ -40,22 +56,6 @@ func startServer() {
 		}
 	}
 
-}
-
-type ConnectionType string
-
-const (
-	Client ConnectionType = "Client"
-	Server ConnectionType = "Server"
-)
-
-func failInvalidConnectionType(ct *ConnectionType) error {
-	switch *ct {
-	case Client, Server:
-		return nil
-	}
-
-	return errors.New("Invalid connection type")
 }
 
 func handleConnection(conn net.Conn) {
