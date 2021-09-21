@@ -72,6 +72,6 @@ func handleConnection(conn net.Conn) {
 }
 
 type gs_msg struct {
-	id  string
-	msg string
+	Id  string `json:"id"`
+	Msg string `json:"msg"`
 }
