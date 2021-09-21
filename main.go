@@ -63,7 +63,7 @@ func handleConnection(conn net.Conn) {
 
 	defer conn.Close()
 
-	messageProto := gs_msg{id: "123", msg: "Hello world!"}
+	messageProto := gs_msg{Id: "1", Msg: "hej"}
 	serializedMsg, err := json.Marshal(messageProto)
 
 	checkError(err)
