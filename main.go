@@ -63,12 +63,14 @@ func handleConnection(conn net.Conn) {
 
 	defer conn.Close()
 
-	messageProto := gs_msg{Id: "1", Msg: "hej"}
+	messageProto := gs_msg{Id: "abc123", Msg: "Hello, world!"}
 	serializedMsg, err := json.Marshal(messageProto)
 
 	checkError(err)
 
-	conn.Write(serializedMsg)
+	size, err := conn.Write(serializedMsg)
+	checkError(err)
+	fmt.Println("size", size)
 }
 
 type gs_msg struct {
