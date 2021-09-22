@@ -15,7 +15,7 @@ func startClient() {
 
 	for {
 
-		status, err := bufio.NewReader(conn).ReadBytes(' ')
+		msg, err := bufio.NewReader(conn).ReadBytes('\n')
 
 		if err != nil {
 			if err.Error() != "EOF" {
@@ -23,14 +23,12 @@ func startClient() {
 			}
 		}
 
-		if len(status) > 0 {
+		if len(msg) > 0 {
 			gs_msg := gs_msg{}
-			err = json.Unmarshal(status, &gs_msg)
-			fmt.Println("res", string(status))
-			fmt.Println("Status", status)
-			// fmt.Printf("gs msg %+v \n", gs_msg)
-			fmt.Println("err", err)
+			err = json.Unmarshal(msg, &gs_msg)
+			checkError(err)
+			fmt.Println("res", string(msg))
+
 		}
 	}
-
 }
