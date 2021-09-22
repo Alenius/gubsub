@@ -1,11 +1,9 @@
 package main
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
-	"net"
 	"os"
 )
 
@@ -43,35 +41,10 @@ func main() {
 
 }
 
-func startServer() {
-	log.Println("starting server")
-
-	listener, err := net.Listen("tcp", "127.0.0.1:8080")
-
-	checkError(err)
-
-	for {
-		if conn, err := listener.Accept(); err == nil {
-			go handleConnection(conn)
-		}
-	}
-
 }
 
-func handleConnection(conn net.Conn) {
-	log.Println("Client connected")
 
-	defer conn.Close()
 
-	messageProto := gs_msg{Id: "abc123", Msg: "Hello, world!"}
-	serializedMsg, err := json.Marshal(messageProto)
-
-	checkError(err)
-
-	size, err := conn.Write(serializedMsg)
-	checkError(err)
-	fmt.Println("size", size)
-}
 
 type gs_msg struct {
 	Id  string `json:"id"`
