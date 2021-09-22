@@ -22,7 +22,7 @@ func failInvalidConnectionType(ct *ConnectionType) error {
 		return nil
 	}
 
-	return errors.New("Invalid connection type")
+	return errors.New("invalid connection type")
 }
 
 func main() {
