@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -22,19 +23,38 @@ func startServer() {
 
 }
 
-func handleConnection(conn net.Conn) {
-	log.Println("Client connected")
+func readConfig(conn net.Conn) (gs_config, error) {
+	for {
+		log.Println("hey")
+		msg, err := bufio.NewReader(conn).ReadBytes('\n')
+		log.Println("hoy")
+		checkTcpMsgError(err)
 
+		if len(msg) > 0 {
+			gs_config := gs_config{}
+			err = json.Unmarshal(msg, &gs_config)
+			checkError(err)
+			fmt.Println("res", string(msg))
+			return gs_config, nil
+		}
+	}
+}
+
+func handleConnection(conn net.Conn) {
 	defer closeConnection(conn)
 
-	raw_msg := gs_msg{}.Create("Hello world, this is a longer string")
-	serializedMsg, err := json.Marshal(raw_msg)
+	log.Println("Client connected")
+
+	config, err := readConfig(conn)
+	log.Println(config)
 
 	checkError(err)
 
-	size, err := conn.Write(serializedMsg)
-	checkError(err)
-	fmt.Println("size", size)
+	for {
+		msg, _ := json.Marshal("oiqjwd\n")
+		conn.Write(msg)
+	}
+
 }
 
 func closeConnection(conn net.Conn) {

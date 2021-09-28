@@ -57,3 +57,36 @@ func (gs_msg) Create(msg string) gs_msg {
 
 	return gs_msg{Id: id, Timestamp: timestamp, Msg: msg}
 }
+
+type gs_config struct {
+	Id         uuid.UUID  `json:"id"`
+	ClientType ClientType `json:"type"`
+}
+
+type ClientType string
+
+const (
+	Subscriber ClientType = "Subscriber"
+	Publisher  ClientType = "Publisher"
+)
+
+func failInvalidClientType(ct *ClientType) error {
+	switch *ct {
+	case Subscriber, Publisher:
+		return nil
+	}
+
+	return errors.New("invalid client type")
+}
+
+func (gs_config) Create(client_type ClientType) (gs_config, error) {
+	id := uuid.New()
+
+	validation_err := failInvalidClientType(&client_type)
+
+	if validation_err != nil {
+		return gs_config{}, validation_err
+	}
+
+	return gs_config{Id: id, ClientType: client_type}, nil
+}

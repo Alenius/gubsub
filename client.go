@@ -8,20 +8,30 @@ import (
 	"net"
 )
 
-func startClient() {
-	conn, err := net.Dial("tcp", "127.0.0.1:8080")
+func sendConfig(conn net.Conn) {
+	raw_config, err := gs_config{}.Create(ClientType(Subscriber))
+
+	checkError(err)
+	serializedMsg, err := json.Marshal(raw_config)
+	log.Println(serializedMsg)
 
 	checkError(err)
 
+	_, err = conn.Write(serializedMsg)
+	checkError(err)
+	_, err = conn.Write([]byte{'\n'})
+	checkError(err)
+}
+
+func startClient() {
+	conn, err := net.Dial("tcp", "127.0.0.1:8080")
+	checkError(err)
+
+	sendConfig(conn)
+
 	for {
-
 		msg, err := bufio.NewReader(conn).ReadBytes('\n')
-
-		if err != nil {
-			if err.Error() != "EOF" {
-				log.Println("Error", err)
-			}
-		}
+		checkTcpMsgError(err)
 
 		if len(msg) > 0 {
 			gs_msg := gs_msg{}
