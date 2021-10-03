@@ -13,7 +13,6 @@ func sendConfig(conn net.Conn) {
 
 	checkError(err)
 	serializedMsg, err := json.Marshal(raw_config)
-	log.Println(serializedMsg)
 
 	checkError(err)
 
@@ -21,6 +20,10 @@ func sendConfig(conn net.Conn) {
 	checkError(err)
 	_, err = conn.Write([]byte{'\n'})
 	checkError(err)
+}
+
+func checkIfCloseMsg(gs_msg gs_msg) bool {
+	return gs_msg.Type == "CLOSE"
 }
 
 func startClient() {
@@ -37,6 +40,15 @@ func startClient() {
 			gs_msg := gs_msg{}
 			err = json.Unmarshal(msg, &gs_msg)
 			checkError(err)
+
+			shouldCloseConn := checkIfCloseMsg(gs_msg)
+
+			if shouldCloseConn {
+				conn.Close()
+				log.Println("Closing client")
+				return
+			}
+
 			fmt.Println("res", string(msg))
 
 		}

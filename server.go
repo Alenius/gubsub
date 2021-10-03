@@ -70,5 +70,8 @@ func handleConnection(conn net.Conn) {
 
 func closeConnection(conn net.Conn) {
 	log.Println("Closing connection")
+	close_msg := gs_msg{}.CreateCloseMsg()
+	writeGsMsg(close_msg, conn)
 	conn.Close()
+	syscall.Exit(0)
 }

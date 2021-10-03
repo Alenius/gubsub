@@ -41,21 +41,25 @@ func main() {
 	} else {
 		startServer()
 	}
-
 }
 
 type gs_msg struct {
 	Id        uuid.UUID `json:"id"`
 	Msg       string    `json:"msg"`
 	Timestamp string    `json:"timestamp"`
+	Type      string    `json:"type"` // MSG or CLOSE
 }
 
 func (gs_msg) Create(msg string) gs_msg {
 	id := uuid.New()
-
 	timestamp := time.Now().UTC().Format(time.RFC3339)
+	return gs_msg{Id: id, Timestamp: timestamp, Msg: msg, Type: "MSG"}
+}
 
-	return gs_msg{Id: id, Timestamp: timestamp, Msg: msg}
+func (gs_msg) CreateCloseMsg() gs_msg {
+	id := uuid.New()
+	timestamp := time.Now().UTC().Format(time.RFC3339)
+	return gs_msg{Id: id, Timestamp: timestamp, Msg: "", Type: "CLOSE"}
 }
 
 func (gs_msg gs_msg) GetMsg() string {
