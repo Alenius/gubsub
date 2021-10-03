@@ -62,6 +62,10 @@ func (gs_msg gs_msg) GetMsg() string {
 	return gs_msg.Msg
 }
 
+func (gs_msg gs_msg) Stringify() string {
+	return gs_msg.Timestamp + " " + gs_msg.Id.String() + " " + gs_msg.Msg
+}
+
 type gs_config struct {
 	Id         uuid.UUID  `json:"id"`
 	ClientType ClientType `json:"type"`

@@ -39,15 +39,15 @@ func readConfig(conn net.Conn) (gs_config, error) {
 	}
 }
 
-func writeToLedger(gubsub_msg gs_msg) error {
-	msg_string := gubsub_msg.GetMsg()
-	err := os.WriteFile("ledger.txt", []byte(msg_string+"\n"), 0644)
+func writeToLedger(msg string) error {
+	err := os.WriteFile("ledger.txt", []byte(msg), 0644)
 	return err
 }
 
 func handleProducerConnection(conn net.Conn) {
 	msg := gs_msg{}.Create("hello")
-	writeToLedger(msg)
+	writeToLedger(msg.Stringify())
+
 }
 
 func handleConnection(conn net.Conn) {
