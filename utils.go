@@ -20,6 +20,15 @@ func checkError(err error) {
 	}
 }
 
+func writeGsMsg(gs_msg gs_msg, conn net.Conn) {
+	serializedMsg, err := json.Marshal(gs_msg)
+	msgWithNewline := append(serializedMsg, []byte{'\n'}...)
+	checkError(err)
+
+	_, err = conn.Write(msgWithNewline)
+	checkError(err)
+}
+
 func readGsMsg(conn net.Conn) (gs_msg, error) {
 	msg, err := bufio.NewReader(conn).ReadBytes('\n')
 
