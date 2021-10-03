@@ -13,12 +13,11 @@ func sendConfig(conn net.Conn) {
 
 	checkError(err)
 	serializedMsg, err := json.Marshal(raw_config)
+	msgWithNewline := append(serializedMsg, []byte{'\n'}...)
 
 	checkError(err)
 
-	_, err = conn.Write(serializedMsg)
-	checkError(err)
-	_, err = conn.Write([]byte{'\n'})
+	_, err = conn.Write(msgWithNewline)
 	checkError(err)
 }
 
