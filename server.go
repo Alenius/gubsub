@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"os"
 )
 
 func startServer() {
@@ -38,6 +39,17 @@ func readConfig(conn net.Conn) (gs_config, error) {
 	}
 }
 
+func writeToLedger(gubsub_msg gs_msg) error {
+	msg_string := gubsub_msg.GetMsg()
+	err := os.WriteFile("ledger.txt", []byte(msg_string+"\n"), 0644)
+	return err
+}
+
+func handleProducerConnection(conn net.Conn) {
+	msg := gs_msg{}.Create("hello")
+	writeToLedger(msg)
+}
+
 func handleConnection(conn net.Conn) {
 	defer closeConnection(conn)
 
@@ -48,11 +60,12 @@ func handleConnection(conn net.Conn) {
 
 	checkError(err)
 
-	for {
-		msg, _ := json.Marshal("oiqjwd\n")
-		conn.Write(msg)
+	switch config.ClientType {
+	case ClientType(Publisher):
+		handleProducerConnection(conn)
+	default:
+		panic("no good")
 	}
-
 }
 
 func closeConnection(conn net.Conn) {

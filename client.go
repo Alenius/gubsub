@@ -9,7 +9,7 @@ import (
 )
 
 func sendConfig(conn net.Conn) {
-	raw_config, err := gs_config{}.Create(ClientType(Subscriber))
+	raw_config, err := gs_config{}.Create(ClientType(Publisher))
 
 	checkError(err)
 	serializedMsg, err := json.Marshal(raw_config)

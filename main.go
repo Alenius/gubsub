@@ -58,6 +58,10 @@ func (gs_msg) Create(msg string) gs_msg {
 	return gs_msg{Id: id, Timestamp: timestamp, Msg: msg}
 }
 
+func (gs_msg gs_msg) GetMsg() string {
+	return gs_msg.Msg
+}
+
 type gs_config struct {
 	Id         uuid.UUID  `json:"id"`
 	ClientType ClientType `json:"type"`
