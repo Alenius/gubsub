@@ -3,8 +3,10 @@ package main
 import (
 	"bufio"
 	"encoding/json"
+	"errors"
 	"log"
 	"net"
+	"os"
 	"syscall"
 )
 
@@ -61,4 +63,15 @@ func checkTcpMsgError(err error) {
 			log.Println("Error", err)
 		}
 	}
+}
+
+func FileExists(fileName string) (bool, error) {
+	_, err := os.Stat(fileName)
+	if err == nil {
+		return true, nil
+	}
+	if errors.Is(err, os.ErrNotExist) {
+		return false, nil
+	}
+	return false, err
 }

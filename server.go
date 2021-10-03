@@ -7,7 +7,15 @@ import (
 	"log"
 	"net"
 	"os"
+	"syscall"
 )
+
+func checkServerError(conn net.Conn, err error) {
+	if err != nil {
+		log.Println("Critical error", err.Error())
+		closeConnection(conn, 1)
+	}
+}
 
 func startServer() {
 	log.Println("starting server")
@@ -39,19 +47,36 @@ func readConfig(conn net.Conn) (gs_config, error) {
 	}
 }
 
-func writeToLedger(msg string) error {
-	err := os.WriteFile("ledger.txt", []byte(msg), 0644)
+func writeToLedger(conn net.Conn, msg string) error {
+	path := "ledger.txt"
+
+	fileExists, _ := FileExists(path)
+
+	if !fileExists {
+		os.Create(path)
+	}
+
+	f, err := os.OpenFile(path, os.O_APPEND|os.O_WRONLY, 0644)
+	checkError(err)
+	defer f.Close()
+
+	bytes, err := f.Write([]byte(msg))
+	checkServerError(conn, err)
+	_, err = f.Write([]byte{'\n'})
+	checkServerError(conn, err)
+	f.Sync()
+
+	log.Println("Wrote to file: ", bytes)
 	return err
 }
 
 func handleProducerConnection(conn net.Conn) {
 	msg := gs_msg{}.Create("hello")
-	writeToLedger(msg.Stringify())
-
+	writeToLedger(conn, msg.Stringify())
 }
 
 func handleConnection(conn net.Conn) {
-	defer closeConnection(conn)
+	defer closeConnection(conn, 0)
 
 	log.Println("Client connected")
 
@@ -68,10 +93,10 @@ func handleConnection(conn net.Conn) {
 	}
 }
 
-func closeConnection(conn net.Conn) {
+func closeConnection(conn net.Conn, exitCode int) {
 	log.Println("Closing connection")
 	close_msg := gs_msg{}.CreateCloseMsg()
 	writeGsMsg(close_msg, conn)
 	conn.Close()
-	syscall.Exit(0)
+	syscall.Exit(exitCode)
 }
