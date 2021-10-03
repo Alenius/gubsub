@@ -25,9 +25,7 @@ func startServer() {
 
 func readConfig(conn net.Conn) (gs_config, error) {
 	for {
-		log.Println("hey")
 		msg, err := bufio.NewReader(conn).ReadBytes('\n')
-		log.Println("hoy")
 		checkTcpMsgError(err)
 
 		if len(msg) > 0 {
