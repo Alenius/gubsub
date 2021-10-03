@@ -7,6 +7,7 @@ import (
 	"log"
 	"net"
 	"os"
+	"strings"
 	"syscall"
 )
 
@@ -71,8 +72,17 @@ func writeToLedger(conn net.Conn, msg string) error {
 }
 
 func handleProducerConnection(conn net.Conn) {
-	msg := gs_msg{}.Create("hello")
-	writeToLedger(conn, msg.Stringify())
+	for {
+		msg_raw := getInput()
+
+		isExitMsg := strings.Compare(msg_raw, "__EXIT")
+		if isExitMsg == 0 {
+			return
+		}
+
+		msg := gs_msg{}.Create(msg_raw)
+		writeToLedger(conn, msg.Stringify())
+	}
 }
 
 func handleConnection(conn net.Conn) {
@@ -99,4 +109,15 @@ func closeConnection(conn net.Conn, exitCode int) {
 	writeGsMsg(close_msg, conn)
 	conn.Close()
 	syscall.Exit(exitCode)
+}
+
+func getInput() string {
+	reader := bufio.NewReader(os.Stdin)
+	for {
+		fmt.Print("-> ")
+		text, _ := reader.ReadString('\n')
+		// convert CRLF to LF
+		text = strings.Replace(text, "\n", "", -1)
+		return text
+	}
 }
