@@ -18,8 +18,8 @@ func checkServerError(conn net.Conn, err error) {
 	}
 }
 
-func startServer() {
-	log.Println("starting server")
+func startBroker() {
+	log.Println("starting broker")
 
 	listener, err := net.Listen("tcp", "127.0.0.1:8080")
 
@@ -33,13 +33,13 @@ func startServer() {
 
 }
 
-func readConfig(conn net.Conn) (gs_config, error) {
+func readConfig(conn net.Conn) (gsConfig, error) {
 	for {
 		msg, err := bufio.NewReader(conn).ReadBytes('\n')
 		checkTcpMsgError(err)
 
 		if len(msg) > 0 {
-			gs_config := gs_config{}
+			gs_config := gsConfig{}
 			err = json.Unmarshal(msg, &gs_config)
 			checkError(err)
 			fmt.Println("res", string(msg))
@@ -79,8 +79,9 @@ func handleProducerConnection(conn net.Conn) {
 		if isExitMsg == 0 {
 			return
 		}
+		readGsMsg(conn)
 
-		msg := gs_msg{}.Create(msg_raw)
+		msg := gsMsg{}.Create(msg_raw)
 		writeToLedger(conn, msg.Stringify())
 	}
 }
@@ -96,7 +97,7 @@ func handleConnection(conn net.Conn) {
 	checkError(err)
 
 	switch config.ClientType {
-	case ClientType(Publisher):
+	case ClientType(ProducerClient):
 		handleProducerConnection(conn)
 	default:
 		panic("no good")
@@ -105,19 +106,8 @@ func handleConnection(conn net.Conn) {
 
 func closeConnection(conn net.Conn, exitCode int) {
 	log.Println("Closing connection")
-	close_msg := gs_msg{}.CreateCloseMsg()
+	close_msg := gsMsg{}.CreateCloseMsg()
 	writeGsMsg(close_msg, conn)
 	conn.Close()
 	syscall.Exit(exitCode)
-}
-
-func getInput() string {
-	reader := bufio.NewReader(os.Stdin)
-	for {
-		fmt.Print("-> ")
-		text, _ := reader.ReadString('\n')
-		// convert CRLF to LF
-		text = strings.Replace(text, "\n", "", -1)
-		return text
-	}
 }

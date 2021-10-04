@@ -8,11 +8,11 @@ import (
 	"net"
 )
 
-func sendConfig(conn net.Conn) {
-	raw_config, err := gs_config{}.Create(ClientType(Publisher))
+func sendConfig(conn net.Conn, clientType ClientType) {
+	rawConfig, err := gsConfig{}.Create(clientType)
 
 	checkError(err)
-	serializedMsg, err := json.Marshal(raw_config)
+	serializedMsg, err := json.Marshal(rawConfig)
 	msgWithNewline := append(serializedMsg, []byte{'\n'}...)
 
 	checkError(err)
@@ -21,22 +21,22 @@ func sendConfig(conn net.Conn) {
 	checkError(err)
 }
 
-func checkIfCloseMsg(gs_msg gs_msg) bool {
+func checkIfCloseMsg(gs_msg gsMsg) bool {
 	return gs_msg.Type == "CLOSE"
 }
 
-func startClient() {
+func startConsumer() {
 	conn, err := net.Dial("tcp", "127.0.0.1:8080")
 	checkError(err)
 
-	sendConfig(conn)
+	sendConfig(conn, ClientType(ConsumerClient))
 
 	for {
 		msg, err := bufio.NewReader(conn).ReadBytes('\n')
 		checkTcpMsgError(err)
 
 		if len(msg) > 0 {
-			gs_msg := gs_msg{}
+			gs_msg := gsMsg{}
 			err = json.Unmarshal(msg, &gs_msg)
 			checkError(err)
 

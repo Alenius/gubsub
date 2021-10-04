@@ -4,9 +4,11 @@ import (
 	"bufio"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"net"
 	"os"
+	"strings"
 	"syscall"
 )
 
@@ -22,7 +24,7 @@ func checkError(err error) {
 	}
 }
 
-func writeGsMsg(gs_msg gs_msg, conn net.Conn) {
+func writeGsMsg(gs_msg gsMsg, conn net.Conn) {
 	serializedMsg, err := json.Marshal(gs_msg)
 	msgWithNewline := append(serializedMsg, []byte{'\n'}...)
 	checkError(err)
@@ -31,27 +33,27 @@ func writeGsMsg(gs_msg gs_msg, conn net.Conn) {
 	checkError(err)
 }
 
-func readGsMsg(conn net.Conn) (gs_msg, error) {
+func readGsMsg(conn net.Conn) (gsMsg, error) {
 	msg, err := bufio.NewReader(conn).ReadBytes('\n')
 
 	if err != nil {
-		return gs_msg{}, err
+		return gsMsg{}, err
 	}
 
-	gs_msg := gs_msg{}
+	gs_msg := gsMsg{}
 	err = json.Unmarshal(msg, &gs_msg)
 	checkError(err)
 	return gs_msg, nil
 }
 
-func readGsConfig(conn net.Conn) (gs_config, error) {
+func readGsConfig(conn net.Conn) (gsConfig, error) {
 	msg, err := bufio.NewReader(conn).ReadBytes('\n')
 
 	if err != nil {
-		return gs_config{}, err
+		return gsConfig{}, err
 	}
 
-	gs_config := gs_config{}
+	gs_config := gsConfig{}
 	err = json.Unmarshal(msg, &gs_config)
 	checkError(err)
 	return gs_config, nil
@@ -74,4 +76,15 @@ func FileExists(fileName string) (bool, error) {
 		return false, nil
 	}
 	return false, err
+}
+
+func getInput() string {
+	reader := bufio.NewReader(os.Stdin)
+	for {
+		fmt.Print("-> ")
+		text, _ := reader.ReadString('\n')
+		// convert CRLF to LF
+		text = strings.Replace(text, "\n", "", -1)
+		return text
+	}
 }
