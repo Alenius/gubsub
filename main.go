@@ -24,8 +24,25 @@ func failInvalidConnectionType(ct *ConnectionType) error {
 	return errors.New("invalid connection type")
 }
 
+type ClientType string
+
+const (
+	ConsumerClient ClientType = "Consumer"
+	ProducerClient ClientType = "Producer"
+)
+
+func failInvalidClientType(ct *ClientType) error {
+	switch *ct {
+	case ConsumerClient, ProducerClient:
+		return nil
+	}
+
+	return errors.New("invalid client type")
+}
+
 func main() {
 	connTypeUnchecked := os.Getenv("TYPE")
+	log.Println(connTypeUnchecked)
 	connType := ConnectionType(connTypeUnchecked)
 	typeError := failInvalidConnectionType(&connType)
 
@@ -41,20 +58,4 @@ func main() {
 	} else {
 		startBroker()
 	}
-}
-
-type ClientType string
-
-const (
-	ConsumerClient ClientType = "Consumer"
-	ProducerClient ClientType = "Producer"
-)
-
-func failInvalidClientType(ct *ClientType) error {
-	switch *ct {
-	case ConsumerClient, ProducerClient:
-		return nil
-	}
-
-	return errors.New("invalid client type")
 }

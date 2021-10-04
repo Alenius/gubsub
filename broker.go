@@ -7,7 +7,6 @@ import (
 	"log"
 	"net"
 	"os"
-	"strings"
 	"syscall"
 )
 
@@ -21,13 +20,21 @@ func checkServerError(conn net.Conn, err error) {
 func startBroker() {
 	log.Println("starting broker")
 
-	listener, err := net.Listen("tcp", "127.0.0.1:8080")
-
+	consumerListener, err := net.Listen("tcp", "127.0.0.1:8080")
+	checkError(err)
+	producerListener, err := net.Listen("tcp", "127.0.0.1:8081")
 	checkError(err)
 
+	channel := make(chan gsMsg)
+	log.Println("channel created")
+
 	for {
-		if conn, err := listener.Accept(); err == nil {
-			go handleConnection(conn)
+		if conn, err := consumerListener.Accept(); err == nil {
+			go handleConsumerConnection(conn, channel)
+		}
+
+		if conn, err := producerListener.Accept(); err == nil {
+			go handleProducerConnection(conn, channel)
 		}
 	}
 
@@ -71,25 +78,19 @@ func writeToLedger(conn net.Conn, msg string) error {
 	return err
 }
 
-func handleProducerConnection(conn net.Conn) {
+func handleProducerConnection(conn net.Conn, channel chan gsMsg) {
+	log.Println("Producer connected")
 	for {
-		msg_raw := getInput()
+		gsMsg, err := readGsMsg(conn)
+		checkError(err)
 
-		isExitMsg := strings.Compare(msg_raw, "__EXIT")
-		if isExitMsg == 0 {
-			return
-		}
-		readGsMsg(conn)
-
-		msg := gsMsg{}.Create(msg_raw)
-		writeToLedger(conn, msg.Stringify())
+		writeToLedger(conn, gsMsg.Stringify())
+		channel <- gsMsg
 	}
 }
 
-func handleConnection(conn net.Conn) {
+func handleConsumerConnection(conn net.Conn, channel chan gsMsg) {
 	defer closeConnection(conn, 0)
-
-	log.Println("Client connected")
 
 	config, err := readConfig(conn)
 	log.Println(config)
@@ -98,9 +99,18 @@ func handleConnection(conn net.Conn) {
 
 	switch config.ClientType {
 	case ClientType(ProducerClient):
-		handleProducerConnection(conn)
+		log.Print("Error, this channel is for consumers")
+		closeConnection(conn, 1)
+	case ClientType(ConsumerClient):
+		break
 	default:
 		panic("no good")
+	}
+
+	for {
+		msg := <-channel
+		log.Println("channel msg", msg)
+		writeGsMsg(msg, conn)
 	}
 }
 

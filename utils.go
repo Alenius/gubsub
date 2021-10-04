@@ -4,11 +4,9 @@ import (
 	"bufio"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"log"
 	"net"
 	"os"
-	"strings"
 	"syscall"
 )
 
@@ -76,15 +74,4 @@ func FileExists(fileName string) (bool, error) {
 		return false, nil
 	}
 	return false, err
-}
-
-func getInput() string {
-	reader := bufio.NewReader(os.Stdin)
-	for {
-		fmt.Print("-> ")
-		text, _ := reader.ReadString('\n')
-		// convert CRLF to LF
-		text = strings.Replace(text, "\n", "", -1)
-		return text
-	}
 }
