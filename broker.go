@@ -7,37 +7,51 @@ import (
 	"log"
 	"net"
 	"os"
+	"sync"
 	"syscall"
 )
+
+type channelWorker struct {
+	msgChannel chan gsMsg
+}
+
+func (w *channelWorker) Start(conn net.Conn) {
+	w.msgChannel = make(chan gsMsg, 10) // some buffer size to avoid blocking
+	go func() {
+		for {
+			msg := <-w.msgChannel
+			log.Println("msg", msg)
+			writeGsMsg(msg, conn)
+		}
+	}()
+}
+
+type threadSafeSlice struct {
+	sync.Mutex
+	workers []*channelWorker
+}
+
+func (slice *threadSafeSlice) Push(w *channelWorker) {
+	slice.Lock()
+	defer slice.Unlock()
+
+	slice.workers = append(slice.workers, w)
+}
+
+func (slice *threadSafeSlice) Iter(routine func(*channelWorker)) {
+	slice.Lock()
+	defer slice.Unlock()
+
+	for _, worker := range slice.workers {
+		routine(worker)
+	}
+}
 
 func checkServerError(conn net.Conn, err error) {
 	if err != nil {
 		log.Println("Critical error", err.Error())
 		closeConnection(conn, 1)
 	}
-}
-
-func startBroker() {
-	log.Println("starting broker")
-
-	consumerListener, err := net.Listen("tcp", "127.0.0.1:8080")
-	checkError(err)
-	producerListener, err := net.Listen("tcp", "127.0.0.1:8081")
-	checkError(err)
-
-	channel := make(chan gsMsg)
-	log.Println("channel created")
-
-	for {
-		if conn, err := consumerListener.Accept(); err == nil {
-			go handleConsumerConnection(conn, channel)
-		}
-
-		if conn, err := producerListener.Accept(); err == nil {
-			go handleProducerConnection(conn, channel)
-		}
-	}
-
 }
 
 func readConfig(conn net.Conn) (gsConfig, error) {
@@ -78,18 +92,47 @@ func writeToLedger(conn net.Conn, msg string) error {
 	return err
 }
 
-func handleProducerConnection(conn net.Conn, channel chan gsMsg) {
+func startBroker() {
+	log.Println("starting broker")
+
+	consumerListener, err := net.Listen("tcp", "127.0.0.1:8080")
+	checkError(err)
+	producerListener, err := net.Listen("tcp", "127.0.0.1:8081")
+	checkError(err)
+
+	workerSlice := threadSafeSlice{}
+
+	for {
+		if conn, err := consumerListener.Accept(); err == nil {
+			worker := channelWorker{}
+			worker.Start(conn)
+			workerSlice.Push(&worker)
+			log.Println("workers", &workerSlice)
+			// go handleConsumerConnection(conn, worker)
+		}
+
+		if conn, err := producerListener.Accept(); err == nil {
+			go handleProducerConnection(conn, &workerSlice)
+		}
+	}
+
+}
+
+func handleProducerConnection(conn net.Conn, workerSlice *threadSafeSlice) {
 	log.Println("Producer connected")
 	for {
 		gsMsg, err := readGsMsg(conn)
 		checkError(err)
 
 		writeToLedger(conn, gsMsg.Stringify())
-		channel <- gsMsg
+		workerSlice.Iter(func(w *channelWorker) {
+			w.msgChannel <- gsMsg
+			log.Println("sending msg", gsMsg.Stringify())
+		})
 	}
 }
 
-func handleConsumerConnection(conn net.Conn, channel chan gsMsg) {
+func handleConsumerConnection(conn net.Conn, worker channelWorker) {
 	defer closeConnection(conn, 0)
 
 	config, err := readConfig(conn)
@@ -108,9 +151,10 @@ func handleConsumerConnection(conn net.Conn, channel chan gsMsg) {
 	}
 
 	for {
-		msg := <-channel
-		log.Println("channel msg", msg)
-		writeGsMsg(msg, conn)
+		// msg := <-channel
+		// log.Println("channel id", config.Id)
+		// log.Println("msg", msg)
+		// writeGsMsg(msg, conn)
 	}
 }
 
