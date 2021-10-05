@@ -38,12 +38,13 @@ func (slice *threadSafeSlice) Push(w *channelWorker) {
 	slice.workers = append(slice.workers, w)
 }
 
-func (slice *threadSafeSlice) Iter(routine func(*channelWorker)) {
+func (slice *threadSafeSlice) SendMessage(msg gsMsg) {
 	slice.Lock()
 	defer slice.Unlock()
 
 	for _, worker := range slice.workers {
-		routine(worker)
+		worker.msgChannel <- msg
+		log.Println("sending msg", msg.Stringify())
 	}
 }
 
@@ -125,10 +126,7 @@ func handleProducerConnection(conn net.Conn, workerSlice *threadSafeSlice) {
 		checkError(err)
 
 		writeToLedger(conn, gsMsg.Stringify())
-		workerSlice.Iter(func(w *channelWorker) {
-			w.msgChannel <- gsMsg
-			log.Println("sending msg", gsMsg.Stringify())
-		})
+		workerSlice.SendMessage(gsMsg)
 	}
 }
 
