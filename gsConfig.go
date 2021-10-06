@@ -5,9 +5,10 @@ import "github.com/google/uuid"
 type gsConfig struct {
 	Id         uuid.UUID  `json:"id"`
 	ClientType ClientType `json:"type"`
+	Topic      string     `json:"topic"`
 }
 
-func (gsConfig) Create(client_type ClientType) (gsConfig, error) {
+func (gsConfig) Create(client_type ClientType, topic string) (gsConfig, error) {
 	id := uuid.New()
 
 	validation_err := failInvalidClientType(&client_type)
@@ -16,5 +17,5 @@ func (gsConfig) Create(client_type ClientType) (gsConfig, error) {
 		return gsConfig{}, validation_err
 	}
 
-	return gsConfig{Id: id, ClientType: client_type}, nil
+	return gsConfig{Id: id, ClientType: client_type, Topic: topic}, nil
 }

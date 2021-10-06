@@ -13,6 +13,7 @@ import (
 
 type channelWorker struct {
 	msgChannel chan gsMsg
+	config     gsConfig
 }
 
 func (w *channelWorker) Start(conn net.Conn) {
@@ -105,11 +106,12 @@ func startBroker() {
 
 	for {
 		if conn, err := consumerListener.Accept(); err == nil {
-			worker := channelWorker{}
+			config, err := readConfig(conn)
+			checkError(err)
+
+			worker := channelWorker{config: config}
 			worker.Start(conn)
 			workerSlice.Push(&worker)
-			log.Println("workers", &workerSlice)
-			// go handleConsumerConnection(conn, worker)
 		}
 
 		if conn, err := producerListener.Accept(); err == nil {
@@ -130,23 +132,13 @@ func handleProducerConnection(conn net.Conn, workerSlice *threadSafeSlice) {
 	}
 }
 
-func handleConsumerConnection(conn net.Conn, worker channelWorker) {
+func handleConsumerConnection(conn net.Conn, worker *channelWorker) {
 	defer closeConnection(conn, 0)
 
 	config, err := readConfig(conn)
-	log.Println(config)
-
 	checkError(err)
 
-	switch config.ClientType {
-	case ClientType(ProducerClient):
-		log.Print("Error, this channel is for consumers")
-		closeConnection(conn, 1)
-	case ClientType(ConsumerClient):
-		break
-	default:
-		panic("no good")
-	}
+	worker.config = config
 
 	for {
 		// msg := <-channel

@@ -6,13 +6,26 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"os"
+	"syscall"
 )
 
-func sendConfig(conn net.Conn, clientType ClientType) {
-	rawConfig, err := gsConfig{}.Create(clientType)
+func createConfig(clientType ClientType) gsConfig {
+	topic := os.Getenv("TOPIC")
 
+	if topic == "" {
+		log.Println("ERROR: Topic needs to be provided")
+		syscall.Exit(1)
+	}
+
+	config, err := gsConfig{}.Create(clientType, topic)
 	checkError(err)
-	serializedMsg, err := json.Marshal(rawConfig)
+	return config
+}
+
+func sendConfig(conn net.Conn, config gsConfig) {
+
+	serializedMsg, err := json.Marshal(config)
 	msgWithNewline := append(serializedMsg, []byte{'\n'}...)
 
 	checkError(err)
@@ -29,7 +42,8 @@ func startConsumer() {
 	conn, err := net.Dial("tcp", "127.0.0.1:8080")
 	checkError(err)
 
-	sendConfig(conn, ClientType(ConsumerClient))
+	config := createConfig(ClientType(ConsumerClient))
+	sendConfig(conn, config)
 
 	for {
 		msg, err := bufio.NewReader(conn).ReadBytes('\n')

@@ -24,7 +24,8 @@ func startProducer() {
 	conn, err := net.Dial("tcp", "127.0.0.1:8081")
 	checkError(err)
 
-	sendConfig(conn, ClientType(ProducerClient))
+	config := createConfig(ClientType(ProducerClient))
+	sendConfig(conn, config)
 
 	for {
 		msg := getInput()
@@ -33,7 +34,7 @@ func startProducer() {
 		if isExitMsg == 0 {
 			return
 		}
-		gsMsg := gsMsg{}.Create(msg)
+		gsMsg := gsMsg{}.Create(msg, config.Topic)
 		writeGsMsg(gsMsg, conn)
 	}
 }
