@@ -44,8 +44,10 @@ func (slice *threadSafeSlice) SendMessage(msg gsMsg) {
 	defer slice.Unlock()
 
 	for _, worker := range slice.workers {
-		worker.msgChannel <- msg
-		log.Println("sending msg", msg.Stringify())
+		if msg.Topic == worker.config.Topic {
+			worker.msgChannel <- msg
+			log.Println("sending msg", msg.Stringify())
+		}
 	}
 }
 
@@ -104,19 +106,30 @@ func startBroker() {
 
 	workerSlice := threadSafeSlice{}
 
+	go func() {
+		for {
+			if conn, err := consumerListener.Accept(); err == nil {
+				log.Println("Consumer connected")
+				config, err := readConfig(conn)
+				checkError(err)
+
+				worker := channelWorker{config: config}
+				worker.Start(conn)
+				workerSlice.Push(&worker)
+			}
+		}
+	}()
+
+	go func() {
+		for {
+			if conn, err := producerListener.Accept(); err == nil {
+				go handleProducerConnection(conn, &workerSlice)
+			}
+		}
+	}()
+
 	for {
-		if conn, err := consumerListener.Accept(); err == nil {
-			config, err := readConfig(conn)
-			checkError(err)
 
-			worker := channelWorker{config: config}
-			worker.Start(conn)
-			workerSlice.Push(&worker)
-		}
-
-		if conn, err := producerListener.Accept(); err == nil {
-			go handleProducerConnection(conn, &workerSlice)
-		}
 	}
 
 }
