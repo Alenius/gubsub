@@ -3,10 +3,10 @@ package main
 import (
 	"bufio"
 	"encoding/json"
-	"fmt"
 	"log"
 	"net"
 	"os"
+	"os/signal"
 	"sync"
 	"syscall"
 )
@@ -14,16 +14,28 @@ import (
 type channelWorker struct {
 	msgChannel chan gsMsg
 	config     gsConfig
+	quitCh     chan bool
+	closed     bool
 }
 
 func (w *channelWorker) Start(conn net.Conn) {
 	w.msgChannel = make(chan gsMsg, 10) // some buffer size to avoid blocking
 	go func() {
 		for {
-			msg := <-w.msgChannel
-			log.Println("msg", msg)
-			writeGsMsg(msg, conn)
+			select {
+			case msg := <-w.msgChannel:
+				log.Println("msg", msg)
+				writeGsMsg(msg, conn)
+			case <-w.quitCh:
+				log.Println("Quitting worker", w.config.Id)
+				quitMsg := gsMsg{}.CreateCloseMsg()
+				writeGsMsg(quitMsg, conn)
+				w.closed = true
+				return
+			}
+
 		}
+
 	}()
 }
 
@@ -46,9 +58,27 @@ func (slice *threadSafeSlice) SendMessage(msg gsMsg) {
 	for _, worker := range slice.workers {
 		if msg.Topic == worker.config.Topic {
 			worker.msgChannel <- msg
-			log.Println("sending msg", msg.Stringify())
 		}
 	}
+}
+
+func (slice *threadSafeSlice) CloseAllWorkers() {
+	for _, worker := range slice.workers {
+		worker.quitCh <- true
+	}
+
+	// wait for all close msgs to be written
+	for {
+		allClosed := true
+		for _, worker := range slice.workers {
+			allClosed = worker.closed
+		}
+
+		if allClosed {
+			return
+		}
+	}
+
 }
 
 func checkServerError(conn net.Conn, err error) {
@@ -67,7 +97,6 @@ func readConfig(conn net.Conn) (gsConfig, error) {
 			gs_config := gsConfig{}
 			err = json.Unmarshal(msg, &gs_config)
 			checkError(err)
-			fmt.Println("res", string(msg))
 			return gs_config, nil
 		}
 	}
@@ -105,6 +134,9 @@ func startBroker() {
 	checkError(err)
 
 	workerSlice := threadSafeSlice{}
+	doneCh := make(chan bool)
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
 	go func() {
 		for {
@@ -113,7 +145,7 @@ func startBroker() {
 				config, err := readConfig(conn)
 				checkError(err)
 
-				worker := channelWorker{config: config}
+				worker := channelWorker{config: config, quitCh: make(chan bool), closed: false}
 				worker.Start(conn)
 				workerSlice.Push(&worker)
 			}
@@ -128,10 +160,13 @@ func startBroker() {
 		}
 	}()
 
-	for {
+	go func() {
+		<-sigs
+		workerSlice.CloseAllWorkers()
+		doneCh <- true
+	}()
 
-	}
-
+	<-doneCh
 }
 
 func handleProducerConnection(conn net.Conn, workerSlice *threadSafeSlice) {
