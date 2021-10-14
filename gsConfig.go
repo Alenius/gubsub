@@ -1,6 +1,12 @@
 package main
 
-import "github.com/google/uuid"
+import (
+	"encoding/json"
+	"io/ioutil"
+	"os"
+
+	"github.com/google/uuid"
+)
 
 type gsConfig struct {
 	Id         uuid.UUID  `json:"id"`
@@ -18,4 +24,18 @@ func (gsConfig) Create(client_type ClientType, topic string) (gsConfig, error) {
 	}
 
 	return gsConfig{Id: id, ClientType: client_type, Topic: topic}, nil
+}
+
+func (gsConfig) CreateFromFile(configFilePath string) (gsConfig, error) {
+	id := uuid.New()
+	file, err := os.Open(configFilePath)
+	checkError(err)
+	defer file.Close()
+
+	configBytes, _ := ioutil.ReadAll(file)
+
+	base_config := gsConfig{}
+	json.Unmarshal(configBytes, &base_config)
+
+	return gsConfig{Id: id, ClientType: base_config.ClientType, Topic: base_config.Topic}, nil
 }

@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -40,7 +41,26 @@ func failInvalidClientType(ct *ClientType) error {
 	return errors.New("invalid client type")
 }
 
+func readCliFlags() string {
+	configFilePath := flag.String("configFilePath", "", "Path to the config file")
+
+	flag.Parse()
+
+	return *configFilePath
+}
+
 func main() {
+
+	configFilePath := readCliFlags()
+
+	log.Println("file path", configFilePath)
+
+	if configFilePath != "" {
+		config, _ := gsConfig{}.CreateFromFile(configFilePath)
+
+		log.Println("config", config)
+	}
+
 	connTypeUnchecked := os.Getenv("TYPE")
 	log.Println(connTypeUnchecked)
 	connType := ConnectionType(connTypeUnchecked)
