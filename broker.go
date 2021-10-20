@@ -180,22 +180,6 @@ func handleProducerConnection(conn net.Conn, workerSlice *threadSafeSlice) {
 	}
 }
 
-func handleConsumerConnection(conn net.Conn, worker *channelWorker) {
-	defer closeConnection(conn, 0)
-
-	config, err := readConfig(conn)
-	checkError(err)
-
-	worker.config = config
-
-	for {
-		// msg := <-channel
-		// log.Println("channel id", config.Id)
-		// log.Println("msg", msg)
-		// writeGsMsg(msg, conn)
-	}
-}
-
 func closeConnection(conn net.Conn, exitCode int) {
 	log.Println("Closing connection")
 	close_msg := gsMsg{}.CreateCloseMsg()

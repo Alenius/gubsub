@@ -14,15 +14,6 @@ const (
 	Broker   ConnectionType = "Broker"
 )
 
-func failInvalidConnectionType(ct *ConnectionType) error {
-	switch *ct {
-	case Consumer, Producer, Broker:
-		return nil
-	}
-
-	return errors.New("invalid connection type")
-}
-
 type ClientType string
 
 const (
