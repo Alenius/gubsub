@@ -4,6 +4,7 @@ import (
 	"errors"
 	"flag"
 	"log"
+	"os"
 )
 
 type ConnectionType string
@@ -14,17 +15,9 @@ const (
 	Broker   ConnectionType = "Broker"
 )
 
-type ClientType string
-
-const (
-	ConsumerClient ClientType = "Consumer"
-	ProducerClient ClientType = "Producer"
-	BrokerClient   ClientType = "Broker"
-)
-
-func failInvalidClientType(ct *ClientType) error {
+func failInvalidConnectionType(ct *ConnectionType) error {
 	switch *ct {
-	case ConsumerClient, ProducerClient:
+	case Consumer, Producer, Broker:
 		return nil
 	}
 
@@ -53,14 +46,16 @@ func createConfig(configFilePath string) gsConfig {
 func main() {
 	configFilePath := readCliFlags()
 
+	log.Println("args", os.Args[1])
+
 	config := createConfig(configFilePath)
 
-	switch config.ClientType {
-	case ConsumerClient:
+	switch config.Type {
+	case Consumer:
 		startConsumer(config)
-	case ProducerClient:
+	case Producer:
 		startProducer(config)
-	case BrokerClient:
+	case Broker:
 		startBroker()
 	default:
 		log.Fatal("That config type is not recognized: ", config.ClientType)
