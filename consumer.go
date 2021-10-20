@@ -6,22 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"os"
-	"syscall"
 )
-
-func createConfig(clientType ClientType) gsConfig {
-	topic := os.Getenv("TOPIC")
-
-	if topic == "" {
-		log.Println("ERROR: Topic needs to be provided")
-		syscall.Exit(1)
-	}
-
-	config, err := gsConfig{}.Create(clientType, topic)
-	checkError(err)
-	return config
-}
 
 func sendConfig(conn net.Conn, config gsConfig) {
 
@@ -38,11 +23,10 @@ func checkIfCloseMsg(gs_msg gsMsg) bool {
 	return gs_msg.Type == "CLOSE"
 }
 
-func startConsumer() {
+func startConsumer(config gsConfig) {
 	conn, err := net.Dial("tcp", "127.0.0.1:8080")
 	checkError(err)
 
-	config := createConfig(ClientType(ConsumerClient))
 	sendConfig(conn, config)
 
 	for {

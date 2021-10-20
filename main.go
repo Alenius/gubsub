@@ -3,9 +3,7 @@ package main
 import (
 	"errors"
 	"flag"
-	"fmt"
 	"log"
-	"os"
 )
 
 type ConnectionType string
@@ -30,6 +28,7 @@ type ClientType string
 const (
 	ConsumerClient ClientType = "Consumer"
 	ProducerClient ClientType = "Producer"
+	BrokerClient   ClientType = "Broker"
 )
 
 func failInvalidClientType(ct *ClientType) error {
@@ -49,33 +48,30 @@ func readCliFlags() string {
 	return *configFilePath
 }
 
-func main() {
+func createConfig(configFilePath string) gsConfig {
+	if configFilePath == "" {
+		log.Fatal("No config path provided")
+	}
 
+	config, _ := gsConfig{}.CreateFromFile(configFilePath)
+	log.Println("Config provided: ", config)
+
+	return config
+}
+
+func main() {
 	configFilePath := readCliFlags()
 
-	log.Println("file path", configFilePath)
+	config := createConfig(configFilePath)
 
-	if configFilePath != "" {
-		config, _ := gsConfig{}.CreateFromFile(configFilePath)
-
-		log.Println("config", config)
-	}
-
-	connTypeUnchecked := os.Getenv("TYPE")
-	log.Println(connTypeUnchecked)
-	connType := ConnectionType(connTypeUnchecked)
-	typeError := failInvalidConnectionType(&connType)
-
-	if typeError != nil {
-		log.Println(fmt.Sprintf("Invalid connection type: %s. Must be 'Server' or 'Client'", connTypeUnchecked))
-		return
-	}
-
-	if connType == Consumer {
-		startConsumer()
-	} else if connType == Producer {
-		startProducer()
-	} else {
+	switch config.ClientType {
+	case ConsumerClient:
+		startConsumer(config)
+	case ProducerClient:
+		startProducer(config)
+	case BrokerClient:
 		startBroker()
+	default:
+		log.Fatal("That config type is not recognized: ", config.ClientType)
 	}
 }

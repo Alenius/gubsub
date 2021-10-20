@@ -20,11 +20,10 @@ func getInput() string {
 	}
 }
 
-func startProducer() {
+func startProducer(config gsConfig) {
 	conn, err := net.Dial("tcp", "127.0.0.1:8081")
 	checkError(err)
 
-	config := createConfig(ClientType(ProducerClient))
 	sendConfig(conn, config)
 
 	for {
